@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM Unicesumar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2332;--surface3:#242840;
+  --border:#2a2f45;--border2:#353b55;
+  --text:#e8eaf0;--text2:#8b90a8;--text3:#555b75;
+  --blue:#4f8ef7;--blue2:#1a3a7a;--blue3:#0d1f42;
+  --green:#3ecf8e;--green2:#0d3d26;
+  --amber:#f59e0b;--amber2:#3d2800;
+  --red:#f43f5e;--red2:#3d0e1a;
+  --purple:#a78bfa;
+  --radius:10px;--radius-sm:6px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* Layout */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column}
+.main{overflow-x:hidden}
+
+/* Sidebar */
+.logo{padding:24px 20px 16px;border-bottom:1px solid var(--border)}
+.logo h1{font-size:15px;font-weight:600;color:var(--text);letter-spacing:.3px}
+.logo span{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+.nav{padding:12px 0;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:.15s;border-left:3px solid transparent}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--blue);border-left-color:var(--blue);background:var(--blue3)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.sidebar-filters{padding:16px 20px;border-top:1px solid var(--border)}
+.sidebar-filters label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:6px;margin-top:12px}
+.sidebar-filters label:first-child{margin-top:0}
+select,input[type=text],input[type=date]{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;transition:.15s}
+select:focus,input:focus{border-color:var(--blue)}
+.toggle-meus{display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;transition:.15s}
+.toggle-meus:hover{border-color:var(--blue)}
+.toggle-meus.on{background:var(--blue3);border-color:var(--blue)}
+.toggle-meus.on span{color:var(--blue)}
+.toggle-dot{width:12px;height:12px;border-radius:50%;background:var(--border2);transition:.15s;flex-shrink:0}
+.toggle-meus.on .toggle-dot{background:var(--blue)}
+.toggle-meus span{font-size:12px;color:var(--text2)}
+
+/* Header */
+.topbar{padding:20px 28px 0;display:flex;align-items:center;justify-content:space-between}
+.topbar h2{font-size:18px;font-weight:600}
+.topbar-actions{display:flex;gap:8px}
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;transition:.15s;display:flex;align-items:center;gap:6px}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{opacity:.9}
+
+/* Dashboard cards */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 28px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.card-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.card-value{font-size:28px;font-weight:600;font-family:'DM Mono',monospace;line-height:1}
+.card-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.card.blue .card-value{color:var(--blue)}
+.card.green .card-value{color:var(--green)}
+.card.amber .card-value{color:var(--amber)}
+.card.red .card-value{color:var(--red)}
+
+/* Charts row */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 28px 20px}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.chart-box h3{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bar-label{font-size:12px;color:var(--text2);width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:var(--blue);transition:width .4s}
+.bar-count{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;width:30px;text-align:right;flex-shrink:0}
+
+/* Tabela */
+.table-section{padding:0 28px 28px}
+.table-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.search-box{position:relative;flex:1;min-width:200px}
+.search-box input{padding-left:32px}
+.search-box svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);width:14px;height:14px}
+.filter-select{width:auto;min-width:140px}
+
+/* Container de Datas */
+.date-filter-group{display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;width:100%;background:var(--surface);border:1px solid var(--border);padding:12px;border-radius:var(--radius);margin-bottom:12px}
+.date-field{display:flex;flex-direction:column;gap:4px}
+.date-field label{font-size:11px;color:var(--text2);font-weight:500}
+
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 14px;text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
+thead th:hover{color:var(--text)}
+thead th.sorted{color:var(--blue)}
+tbody tr{border-bottom:1px solid var(--border);transition:.1s;cursor:pointer}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+tbody td{padding:10px 14px;font-size:13px;color:var(--text)}
+tbody td.muted{color:var(--text2)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-green{background:var(--green2);color:var(--green)}
+.badge-amber{background:var(--amber2);color:var(--amber)}
+.badge-red{background:var(--red2);color:var(--red)}
+.badge-blue{background:var(--blue3);color:var(--blue)}
+.badge-gray{background:var(--surface3);color:var(--text2)}
+
+/* Paginação */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)}
+.page-btns{display:flex;gap:4px}
+.page-btn{padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;color:var(--text2);font-size:12px;font-family:'DM Sans',sans-serif}
+.page-btn:hover,.page-btn.active{background:var(--blue3);border-color:var(--blue);color:var(--blue)}
+.page-btn:disabled{opacity:.4;cursor:default}
+
+/* Modal detalhe */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-start;justify-content:flex-end;z-index:100;opacity:0;pointer-events:none;transition:.2s}
+.overlay.open{opacity:1;pointer-events:all}
+.drawer{width:480px;height:100vh;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;transform:translateX(40px);transition:.2s}
+.overlay.open .drawer{transform:translateX(0)}
+.drawer-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1}
+.drawer-header h3{font-size:15px;font-weight:600;line-height:1.3}
+.drawer-close{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;font-size:18px}
+.drawer-body{padding:20px 24px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.info-item label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;display:block;margin-bottom:3px}
+.info-item span{font-size:13px;color:var(--text)}
+.info-item.full{grid-column:1/-1}
+.section-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.anotacao-item{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px}
+.anotacao-meta{font-size:10px;color:var(--text3);margin-bottom:4px}
+.anotacao-texto{font-size:13px;color:var(--text);line-height:1.5}
+.add-nota{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:72px;outline:none;transition:.15s;margin-top:4px}
+.add-nota:focus{border-color:var(--blue)}
+.empty{text-align:center;padding:48px;color:var(--text3);font-size:13px}
+.loading{text-align:center;padding:48px;color:var(--text3)}
+
+/* Novas Sub-Tabs para os Painéis */
+.sub-tabs{display:flex;gap:4px;background:var(--surface);padding:6px;border-radius:var(--radius);margin-bottom:14px;border:1px solid var(--border)}
+.sub-tab{flex:1;text-align:center;padding:8px 12px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border-radius:var(--radius-sm);transition:.15s}
+.sub-tab:hover{color:var(--text);background:var(--surface2)}
+.sub-tab.active{color:#fff;background:var(--blue)}
+
+/* Tabs Principais */
+.tabs{display:flex;gap:0;padding:0 28px;margin-bottom:-1px}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .cards{grid-template-columns:1fr 1fr}
+  .charts{grid-template-columns:1fr}
+  .date-filter-group{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="logo">
+    <h1>CRM Unicesumar</h1>
+    <span>Polo · Acompanhamento</span>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" id="nav-dashboard" onclick="showTab('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" id="nav-tabela" onclick="showTab('tabela')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Inscrições
+    </div>
+  </nav>
+  <div class="sidebar-filters">
+    <label>Semestre</label>
+    <select id="filtro-semestre" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+    <label>Polo</label>
+    <select id="filtro-polo" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+    <label>Meus candidatos</label>
+    <div class="toggle-meus" id="toggle-meus" onclick="toggleMeus()">
+      <div class="toggle-dot"></div>
+      <span>Apenas os meus</span>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="page-title">Dashboard</h2>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" onclick="exportar()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar CSV
+      </button>
+    </div>
+  </div>
+
+  <div id="tab-dashboard" class="tab-content active">
+    <div class="cards">
+      <div class="card blue">
+        <div class="card-label">Total inscrições</div>
+        <div class="card-value" id="d-total">—</div>
+        <div class="card-sub" id="d-semestre-label">carregando...</div>
+      </div>
+      <div class="card amber">
+        <div class="card-label">Boleto a vencer</div>
+        <div class="card-value" id="d-boleto">—</div>
+        <div class="card-sub">mensalidade pendente</div>
+      </div>
+      <div class="card red">
+        <div class="card-label">Sem contato +7d</div>
+        <div class="card-value" id="d-semcontato">—</div>
+        <div class="card-sub">precisam de atenção</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">Desistências</div>
+        <div class="card-value" id="d-desistiu">—</div>
+        <div class="card-sub">desistiu ou cancelou</div>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="chart-box">
+        <h3>Por status</h3>
+        <div id="chart-status"></div>
+      </div>
+      <div class="chart-box">
+        <h3>Por polo</h3>
+        <div id="chart-polo"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-tabela" class="tab-content">
+    <div class="table-section">
+      
+      <div class="sub-tabs">
+        <div class="sub-tab active" id="p-todos" onclick="mudarPainel('todos')">Todos os registros</div>
+        <div class="sub-tab" id="p-pre" onclick="mudarPainel('pre')">Pré-Inscrições</div>
+        <div class="sub-tab" id="p-vestibular" onclick="mudarPainel('vestibular')">Vestibular</div>
+        <div class="sub-tab" id="p-boletos" onclick="mudarPainel('boletos')">Boletos</div>
+        <div class="sub-tab" id="p-finalizados" onclick="mudarPainel('finalizados')">Finalizados & RA</div>
+      </div>
+
+      <div class="date-filter-group">
+        <div class="date-field">
+          <label>Inscrição (De)</label>
+          <input type="date" id="insc-de" onchange="buscar()">
+        </div>
+        <div class="date-field">
+          <label>Inscrição (Até)</label>
+          <input type="date" id="insc-ate" onchange="buscar()">
+        </div>
+        <div class="date-field">
+          <label>Último Contato (De)</label>
+          <input type="date" id="contato-de" onchange="buscar()">
+        </div>
+        <div class="date-field">
+          <label>Último Contato (Até)</label>
+          <input type="date" id="contato-ate" onchange="buscar()">
+        </div>
+      </div>
+
+      <div class="table-toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="busca" placeholder="Buscar por nome, CPF, e-mail..." oninput="debounce(buscar, 400)()">
+        </div>
+        <select class="filter-select" id="filtro-status" onchange="buscar()">
+          <option value="">Todos os status</option>
+        </select>
+        <select class="filter-select" id="filtro-ordem" onchange="buscar()">
+          <option value="nome">Ordenar por nome</option>
+          <option value="dt_inscricao">Data de Inscrição</option>
+          <option value="ultimo_contato">Último contato</option>
+          <option value="dias_sem_contato">Dias sem contato</option>
+          <option value="status">Status</option>
+          <option value="polo">Polo</option>
+        </select>
+        <select class="filter-select" id="filtro-direcao" onchange="buscar()">
+          <option value="ASC">A → Z</option>
+          <option value="DESC">Z → A</option>
+        </select>
+      </div>
+      
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('nome')">Nome</th>
+              <th onclick="sortBy('dt_inscricao')">Data Inscrição</th>
+              <th onclick="sortBy('polo')">Polo</th>
+              <th onclick="sortBy('curso')">Curso</th>
+              <th onclick="sortBy('status')">Status</th>
+              <th onclick="sortBy('mensalidade')">Mensalidade</th>
+              <th onclick="sortBy('dias_sem_contato')">Dias s/ contato</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-body">
+            <tr><td colspan="7" class="loading">Carregando...</td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span id="pag-info">—</span>
+          <div class="page-btns" id="pag-btns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="overlay" id="overlay" onclick="fecharDrawer(event)">
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div>
+        <h3 id="drawer-nome">—</h3>
+        <div style="font-size:12px;color:var(--text3);margin-top:3px" id="drawer-sub">—</div>
+      </div>
+      <button class="drawer-close" onclick="fecharDrawer(null)">✕</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </div>
+</div>
+
+<script>
+// ── Estado ────────────────────────────────────────────────────
+const state = {
+  semestre: "", polo: "", meus: false, painel: "todos",
+  busca: "", status: "", ordem: "nome", direcao: "ASC",
+  pagina: 1, total: 0
+};
+let debTimer = null;
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  await carregarSemestres();
+  await carregarPolos();
+  await carregarStatusLista();
+  await carregarDashboard();
+  await buscar();
+}
+
+async function api(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+// ── Filtros gerais ────────────────────────────────────────────
+function qs() {
+  const p = new URLSearchParams();
+  if (state.semestre) p.set("semestre", state.semestre);
+  if (state.polo)     p.set("polo",     state.polo);
+  if (state.meus)     p.set("meus",     "1");
+  if (state.painel)   p.set("painel",   state.painel);
+  return p;
+}
+
+async function aplicarFiltros() {
+  state.semestre = document.getElementById("filtro-semestre").value;
+  state.polo     = document.getElementById("filtro-polo").value;
+  state.pagina   = 1;
+  await carregarPolos();
+  await carregarDashboard();
+  await buscar();
+}
+
+function toggleMeus() {
+  state.meus = !state.meus;
+  document.getElementById("toggle-meus").classList.toggle("on", state.meus);
+  state.pagina = 1;
+  carregarDashboard();
+  buscar();
+}
+
+function mudarPainel(novoPainel) {
+  state.painel = novoPainel;
+  document.querySelectorAll(".sub-tab").forEach(st => st.classList.remove("active"));
+  document.getElementById(`p-${novoPainel}`).classList.add("active");
+  state.pagina = 1;
+  buscar();
+}
+
+// ── Semestres / Polos ─────────────────────────────────────────
+async function carregarSemestres() {
+  const lista = await api("/api/semestres");
+  const sel   = document.getElementById("filtro-semestre");
+  lista.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+  if (lista.length) { sel.value = lista[0]; state.semestre = lista[0]; }
+}
+
+async function carregarPolos() {
+  const p   = new URLSearchParams();
+  if (state.semestre) p.set("semestre", state.semestre);
+  const lista = await api("/api/polos?" + p);
+  const sel   = document.getElementById("filtro-polo");
+  const val   = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>';
+  lista.forEach(polo => {
+    const o = document.createElement("option");
+    o.value = polo; o.textContent = polo;
+    sel.appendChild(o);
+  });
+  if (val) sel.value = val;
+}
+
+async function carregarStatusLista() {
+  const p = new URLSearchParams();
+  if (state.semestre) p.set("semestre", state.semestre);
+  const lista = await api("/api/status_lista?" + p);
+  const sel   = document.getElementById("filtro-status");
+  lista.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s; o.textContent = s;
+    sel.appendChild(o);
+  });
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+async function carregarDashboard() {
+  const d = await api("/api/dashboard?" + qs());
+  document.getElementById("d-total").textContent      = d.total;
+  document.getElementById("d-boleto").textContent     = d.boleto_avencer;
+  document.getElementById("d-semcontato").textContent = d.sem_contato;
+  document.getElementById("d-desistiu").textContent   = d.desistiu;
+  document.getElementById("d-semestre-label").textContent = state.semestre || "todos os semestres";
+  renderBars("chart-status", d.por_status, "status", "total");
+  renderBars("chart-polo",   d.por_polo,   "polo",   "total");
+}
+
+function renderBars(containerId, dados, labelKey, valKey) {
+  const el  = document.getElementById(containerId);
+  const max = Math.max(...dados.map(d => d[valKey]), 1);
+  el.innerHTML = dados.map(d => `
+    <div class="bar-row">
+      <span class="bar-label" title="${d[labelKey]}">${d[labelKey] || '—'}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(d[valKey]/max*100).toFixed(1)}%"></div></div>
+      <span class="bar-count">${d[valKey]}</span>
+    </div>`).join("") || '<div style="color:var(--text3);font-size:12px">Sem dados</div>';
+}
+
+// ── Tabela ────────────────────────────────────────────────────
+function debounce(fn, ms) {
+  return (...args) => { clearTimeout(debTimer); debTimer = setTimeout(() => fn(...args), ms); };
+}
+
+async function buscar() {
+  const p = qs();
+  const b = document.getElementById("busca").value;
+  const s = document.getElementById("filtro-status").value;
+  const o = document.getElementById("filtro-ordem").value;
+  const d = document.getElementById("filtro-direcao").value;
+  
+  // Resgata os valores das datas informadas
+  const iDe = document.getElementById("insc-de").value;
+  const iAt = document.getElementById("insc-ate").value;
+  const cDe = document.getElementById("contato-de").value;
+  const cAt = document.getElementById("contato-ate").value;
+
+  if (b) p.set("busca", b);
+  if (s) p.set("status", s);
+  if (iDe) p.set("insc_de", iDe);
+  if (iAt) p.set("insc_ate", iAt);
+  if (cDe) p.set("contato_de", cDe);
+  if (cAt) p.set("contato_ate", cAt);
+
+  p.set("ordem",    o);
+  p.set("direcao",  d);
+  p.set("pagina",   state.pagina);
+  p.set("por_pagina", 50);
+
+  const data = await api("/api/inscricoes?" + p);
+  state.total = data.total;
+  renderTabela(data.registros);
+  renderPaginacao(data.total, state.pagina);
+}
+
+function formatarDataBR(dataSql) {
+  if (!dataSql) return '—';
+  if (dataSql.includes("-")) {
+    const partes = dataSql.split(" ")[0].split("-");
+    if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  }
+  return dataSql;
+}
+
+function renderTabela(rows) {
+  const tbody = document.getElementById("tabela-body");
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum resultado encontrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr onclick="abrirDrawer(${r.id})">
+      <td><strong>${r.nome || r.candidato || '—'}</strong><br><span class="muted" style="font-size:11px">${r.cpf || ''}</span></td>
+      <td class="muted">${formatarDataBR(r.dt_inscricao)}</td>
+      <td class="muted">${r.polo || '—'}</td>
+      <td class="muted" style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.curso || '—'}</td>
+      <td>${badgeStatus(r.status)}</td>
+      <td>${badgeMensalidade(r.mensalidade)}</td>
+      <td style="text-align:center">${diasBadge(r.dias_sem_contato)}</td>
+    </tr>`).join("");
+}
+
+function badgeStatus(s) {
+  if (!s) return '<span class="badge badge-gray">—</span>';
+  const upper = s.toUpperCase();
+  if (upper.includes("MATRICUL")) return `<span class="badge badge-green">${s}</span>`;
+  if (upper.includes("BOLETO") || upper.includes("INSCRIT")) return `<span class="badge badge-blue">${s}</span>`;
+  if (upper.includes("DESIST") || upper.includes("CANCEL")) return `<span class="badge badge-red">${s}</span>`;
+  if (upper.includes("AGUARD") || upper.includes("PENDEN")) return `<span class="badge badge-amber">${s}</span>`;
+  return `<span class="badge badge-gray">${s}</span>`;
+}
+
+function badgeMensalidade(m) {
+  if (!m) return '—';
+  if (m.toUpperCase().includes("VENCER")) return `<span class="badge badge-amber">${m}</span>`;
+  if (m.toUpperCase().includes("PAGO") || m.toUpperCase().includes("OK")) return `<span class="badge badge-green">${m}</span>`;
+  return `<span class="badge badge-gray">${m}</span>`;
+}
+
+// ── Drawer ────────────────────────────────────────────────────
+async function abrirDrawer(id) {
+  document.getElementById("overlay").classList.add("open");
+  document.getElementById("drawer-nome").textContent = "Carregando...";
+  document.getElementById("drawer-sub").textContent = "";
+  document.getElementById("drawer-body").innerHTML = "";
+
+  const data = await api(`/api/inscricoes/${id}`);
+  const r    = data.inscricao;
+  const ants = data.anotacoes;
+
+  document.getElementById("drawer-nome").textContent = r.nome || r.candidato || "—";
+  document.getElementById("drawer-sub").textContent  = `${r.polo || "—"} · ${r.semestre || "—"}`;
+
+  const campo = (label, val) => `
+    <div class="info-item">
+      <label>${label}</label>
+      <span>${val || "—"}</span>
+    </div>`;
+
+  document.getElementById("drawer-body").innerHTML = `
+    <div class="info-grid">
+      ${campo("Data Inscrição", formatarDataBR(r.dt_inscricao))}
+      ${campo("Candidato nº", r.candidato)}
+      ${campo("CPF", r.cpf)}
+      ${campo("Curso", r.curso)}
+      ${campo("Polo", r.polo)}
+      ${campo("Status", r.status)}
+      ${campo("Mensalidade", r.mensalidade)}
+      ${campo("Telefone", r.telefone)}
+      ${campo("Celular", r.celular)}
+      ${campo("E-mail", r.email)}
+      ${campo("Inscrito por", r.inscrito_por)}
+      ${campo("Boleto gerado por", r.boleto_gerado_por)}
+      ${campo("Resp. último atend.", r.resp_ultimo_atendimento)}
+      ${campo("Último contato", formatarDataBR(r.ultimo_contato))}
+      ${campo("Dias sem contato", r.dias_sem_contato ? r.dias_sem_contato + "d" : null)}
+      ${campo("Total contatos", r.total_contatos)}
+      ${campo("Vestibular agend.", r.dt_agendamento_vestibular)}
+      ${campo("Vestibular realiz.", r.dt_realizacao_vestibular)}
+      ${campo("Nota vestibular", r.nota_vestibular)}
+      ${campo("Desistiu", r.desistiu)}
+      ${campo("Cancelou", r.cancelou)}
+      ${campo("Motivo", r.motivo)}
+    </div>
+    ${r.observacoes_original ? `
+    <div class="section-title">Observações do sistema</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px">${r.observacoes_original}</div>` : ""}
+
+    <div class="section-title">Anotações</div>
+    <div id="anotacoes-lista">
+      ${ants.length ? ants.map(a => `
+        <div class="anotacao-item">
+          <div class="anotacao-meta">${a.autor} · ${a.criado_em ? a.criado_em.substring(0,16).replace("T"," ") : "—"}</div>
+          <div class="anotacao-texto">${a.texto}</div>
+        </div>`).join("") : '<div style="color:var(--text3);font-size:12px;margin-bottom:12px">Nenhuma anotação ainda.</div>'}
+    </div>
+    <textarea class="add-nota" id="nova-nota" placeholder="Adicionar anotação..."></textarea>
+    <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="salvarNota(${id})">Salvar anotação</button>
+  `;
+}
+
+function diasBadge(d) {
+  const n = parseInt(d);
+  if (isNaN(n)) return '<span class="muted">—</span>';
+  if (n > 14)  return `<span class="badge badge-red">${n}d</span>`;
+  if (n > 7)   return `<span class="badge badge-amber">${n}d</span>`;
+  return `<span class="badge badge-green">${n}d</span>`;
+}
+
+function renderPaginacao(total, pagina) {
+  const porPag  = 50;
+  const totalPag = Math.ceil(total / porPag);
+  document.getElementById("pag-info").textContent = `${total} registros · página ${pagina} de ${totalPag}`;
+  const btns = document.getElementById("pag-btns");
+  btns.innerHTML = "";
+  const makeBtn = (label, pg, disabled) => {
+    const b = document.createElement("button");
+    b.className = "page-btn" + (pg === pagina ? " active" : "");
+    b.textContent = label;
+    b.disabled = disabled;
+    b.onclick = () => { state.pagina = pg; buscar(); };
+    btns.appendChild(b);
+  };
+  makeBtn("‹", pagina-1, pagina<=1);
+  const start = Math.max(1, pagina-2), end = Math.min(totalPag, pagina+2);
+  for (let i = start; i <= end; i++) makeBtn(i, i, false);
+  makeBtn("›", pagina+1, pagina>=totalPag);
+}
+
+function sortBy(col) {
+  if (document.getElementById("filtro-ordem").value === col) {
+    document.getElementById("filtro-direcao").value =
+      document.getElementById("filtro-direcao").value === "ASC" ? "DESC" : "ASC";
+  } else {
+    document.getElementById("filtro-ordem").value = col;
+  }
+  state.pagina = 1;
+  buscar();
+}
+
+async function salvarNota(id) {
+  const texto = document.getElementById("nova-nota").value.trim();
+  if (!texto) return;
+  await fetch(`/api/inscricoes/${id}/anotacao`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({texto})
+  });
+  await abrirDrawer(id);
+}
+
+function fecharDrawer(e) {
+  if (e && e.target !== document.getElementById("overlay")) return;
+  document.getElementById("overlay").classList.remove("open");
+}
+
+// ── Tabs Principais ───────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById(`tab-${tab}`).classList.add("active");
+  document.getElementById(`nav-${tab}`).classList.add("active");
+  document.getElementById("page-title").textContent = tab === "dashboard" ? "Dashboard" : "Inscrições";
+  if (tab === "tabela") buscar();
+}
+
+// ── Exportar ──────────────────────────────────────────────────
+function exportar() {
+  const p = qs();
+  const b = document.getElementById("busca").value;
+  const s = document.getElementById("filtro-status").value;
+  if (b) p.set("busca", b);
+  if (s) p.set("status", s);
+  window.open("/api/exportar?" + p, "_blank");
+}
+
+// ── Start ─────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
