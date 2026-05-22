@@ -1,0 +1,18 @@
+# Banco de dados — nunca subir
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Variáveis de ambiente
+.env
+.env.*
+
+# Sistemas operacionais
+.DS_Store
+Thumbs.db
