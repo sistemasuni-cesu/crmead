@@ -59,6 +59,19 @@ _last_fetch: float = 0
 
 
 def _onedrive_direct_url(share_url: str) -> str:
+    """
+    Converte link de compartilhamento do OneDrive em link de download direto.
+    Links 1drv.ms precisam ser convertidos via base64 para o formato api.onedrive.com.
+    """
+    import base64
+    # Formato curto 1drv.ms → converte para API do OneDrive
+    if "1drv.ms" in share_url:
+        # Codifica o link em base64 url-safe sem padding e monta URL da API
+        encoded = base64.b64encode(share_url.encode()).decode()
+        # Remove padding e ajusta caracteres
+        encoded = encoded.rstrip("=").replace("+", "-").replace("/", "_")
+        return f"https://api.onedrive.com/v1.0/shares/u!{encoded}/root/content"
+    # Links onedrive.live.com ou sharepoint → adiciona download=1
     sep = "&" if "?" in share_url else "?"
     return share_url + sep + "download=1"
 
