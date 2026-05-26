@@ -4,8 +4,8 @@ Deploy: Railway (ou qualquer host com Python)
 
 Fluxo de atualização diária:
   1. Você roda seu script → gera crm_unicesumar.db (com anotações da planilha)
-  2. O .db é salvo automaticamente na pasta CRM_Unicesumar do OneDrive
-  3. Configure a variável ONEDRIVE_URL no Railway (link de compartilhamento)
+  2. O .db é salvo automaticamente no Google Drive
+  3. Configure a variável GDRIVE_URL no Railway (link de compartilhamento)
   4. O servidor puxa o .db novo a cada 3 minutos automaticamente
 
 Como as anotações funcionam:
@@ -17,7 +17,7 @@ Como as anotações funcionam:
 
 Variáveis de ambiente no Railway:
   DATABASE_URL   → gerada automaticamente ao adicionar PostgreSQL no Railway
-  ONEDRIVE_URL   → link de compartilhamento do .db no OneDrive
+  GDRIVE_URL     → link de compartilhamento do .db no Google Drive
   MEU_NOME       → seu nome completo (padrão já configurado abaixo)
   DB_REFRESH_INTERVAL → intervalo em segundos para baixar o .db (padrão: 180)
 
@@ -43,7 +43,7 @@ from flask import Flask, jsonify, request, send_from_directory, Response
 
 # ── Configuração ──────────────────────────────────────────────
 
-ONEDRIVE_URL      = os.environ.get("ONEDRIVE_URL", "COLE_O_LINK_AQUI")
+GDRIVE_URL        = os.environ.get("GDRIVE_URL", "COLE_O_LINK_AQUI")
 REFRESH_INTERVAL  = int(os.environ.get("DB_REFRESH_INTERVAL", 180))
 DATABASE_URL      = os.environ.get("DATABASE_URL", "")          # PostgreSQL no Railway
 MEU_NOME          = os.environ.get("MEU_NOME", "LUIZ EDUARDO FERREIRA PALMA")
@@ -51,27 +51,51 @@ MEU_NOME          = os.environ.get("MEU_NOME", "LUIZ EDUARDO FERREIRA PALMA")
 STATIC_DIR = Path(__file__).parent
 app = Flask(__name__, static_folder=str(STATIC_DIR))
 
-# ── Cache do SQLite (OneDrive) ────────────────────────────────
+# ── Cache do SQLite (Google Drive) ────────────────────────────
 
 _db_path: Path  = None
 _db_lock        = threading.Lock()
 _last_fetch: float = 0
 
 
-def _onedrive_direct_url(share_url: str) -> str:
-    # Converte link 1drv.ms para download direto
-    # Troca o domínio e adiciona download=1
-    if "1drv.ms" in share_url or "onedrive.live.com" in share_url:
-        sep = "&" if "?" in share_url else "?"
-        return share_url + sep + "download=1"
+def _gdrive_direct_url(share_url: str) -> str:
+    """
+    Converte link de compartilhamento do Google Drive em link de download direto.
+    Suporta formatos:
+      https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+      https://drive.google.com/open?id=FILE_ID
+    """
+    import re
+    # Formato /file/d/ID/view
+    match = re.search(r"/d/([a-zA-Z0-9_-]+)", share_url)
+    if match:
+        file_id = match.group(1)
+        return f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+    # Formato ?id=ID
+    match = re.search(r"[?&]id=([a-zA-Z0-9_-]+)", share_url)
+    if match:
+        file_id = match.group(1)
+        return f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+    # Fallback: retorna como está
     return share_url
 
+
 def _baixar_banco() -> Path:
-    url  = _onedrive_direct_url(ONEDRIVE_URL)
+    url  = _gdrive_direct_url(GDRIVE_URL)
     resp = requests.get(url, timeout=30, allow_redirects=True)
     resp.raise_for_status()
+
+    # Verifica se o conteúdo é realmente um banco SQLite (começa com "SQLite format 3")
+    content = resp.content
+    if not content.startswith(b"SQLite format 3"):
+        raise ValueError(
+            f"Conteúdo baixado não é um banco SQLite válido. "
+            f"Verifique se o arquivo no Google Drive está compartilhado como 'Qualquer pessoa com o link'. "
+            f"Primeiros bytes: {content[:50]}"
+        )
+
     tmp = tempfile.NamedTemporaryFile(suffix=".db", prefix="crm_", delete=False)
-    tmp.write(resp.content)
+    tmp.write(content)
     tmp.flush()
     tmp.close()
     return Path(tmp.name)
@@ -79,11 +103,11 @@ def _baixar_banco() -> Path:
 
 def get_db_path() -> Path:
     global _db_path, _last_fetch
-    if not ONEDRIVE_URL or ONEDRIVE_URL == "COLE_O_LINK_AQUI":
+    if not GDRIVE_URL or GDRIVE_URL == "COLE_O_LINK_AQUI":
         fallback = Path(__file__).parent / "crm_unicesumar.db"
         if fallback.exists():
             return fallback
-        raise FileNotFoundError("Banco não encontrado. Configure ONEDRIVE_URL.")
+        raise FileNotFoundError("Banco não encontrado. Configure GDRIVE_URL.")
     agora = time.time()
     with _db_lock:
         if _db_path is None or (agora - _last_fetch) > REFRESH_INTERVAL:
@@ -95,9 +119,9 @@ def get_db_path() -> Path:
                 if antigo and antigo.exists():
                     try: antigo.unlink()
                     except Exception: pass
-                print(f"[DB] Banco atualizado do OneDrive às {datetime.now().strftime('%H:%M:%S')}")
+                print(f"[DB] Banco atualizado do Google Drive às {datetime.now().strftime('%H:%M:%S')}")
             except Exception as e:
-                print(f"[DB] Falha ao baixar do OneDrive: {e}")
+                print(f"[DB] Falha ao baixar do Google Drive: {e}")
                 if _db_path is None:
                     raise
         return _db_path
@@ -138,7 +162,7 @@ def _init_pg():
                     autor       TEXT,
                     criado_em   TEXT,
                     origem      TEXT DEFAULT 'online',
-                    hash_dedup  TEXT UNIQUE   -- evita duplicatas ao mesclar
+                    hash_dedup  TEXT UNIQUE
                 )
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS idx_ao_cid ON anotacoes_online(candidato_id)")
@@ -247,7 +271,7 @@ def status_banco():
     return jsonify({
         "ultimo_fetch": datetime.fromtimestamp(_last_fetch).strftime("%d/%m/%Y %H:%M:%S") if _last_fetch else "nunca",
         "proximo_fetch_em_segundos": max(0, int(REFRESH_INTERVAL - (time.time() - _last_fetch))) if _last_fetch else 0,
-        "onedrive_configurado": bool(ONEDRIVE_URL and ONEDRIVE_URL != "COLE_O_LINK_AQUI"),
+        "gdrive_configurado": bool(GDRIVE_URL and GDRIVE_URL != "COLE_O_LINK_AQUI"),
         "postgres_configurado": bool(DATABASE_URL),
     })
 
@@ -374,7 +398,6 @@ def get_inscricao(iid):
     if not row:
         return jsonify({"erro": "não encontrado"}), 404
 
-    # Mescla anotações do SQLite com as do PostgreSQL (sem duplicatas)
     anotacoes = mesclar_anotacoes(str(iid), anotacoes_sqlite)
     return jsonify({"inscricao": dict(row), "anotacoes": anotacoes})
 
@@ -389,10 +412,8 @@ def add_anotacao(iid):
 
     criado_em = datetime.now().isoformat()
 
-    # Salva no PostgreSQL (persistente, não some com atualização do .db)
     pg_ok = pg_salvar_anotacao(str(iid), texto, autor, criado_em)
 
-    # Fallback: se PostgreSQL não estiver configurado, salva no SQLite local
     if not pg_ok:
         try:
             conn = get_sqlite()
@@ -485,7 +506,7 @@ if __name__ == "__main__":
     print("=" * 55)
     print("  CRM Unicesumar — Servidor iniciado")
     print("  Acesse: http://localhost:5000")
-    print(f"  Banco SQLite : {'OneDrive' if ONEDRIVE_URL != 'COLE_O_LINK_AQUI' else 'arquivo local'}")
+    print(f"  Banco SQLite : {'Google Drive' if GDRIVE_URL != 'COLE_O_LINK_AQUI' else 'arquivo local'}")
     print(f"  Anotações    : {'PostgreSQL (Railway)' if DATABASE_URL else 'SQLite local (fallback)'}")
     print("  Ctrl+C para parar")
     print("=" * 55)
