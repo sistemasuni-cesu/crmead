@@ -59,13 +59,12 @@ _last_fetch: float = 0
 
 
 def _onedrive_direct_url(share_url: str) -> str:
-    import base64
-    # Remove parâmetros após ? para limpar o link
-    url_limpa = share_url.split("?")[0]
-    # Codifica em base64 url-safe
-    encoded = base64.b64encode(url_limpa.encode()).decode()
-    encoded = encoded.rstrip("=").replace("+", "-").replace("/", "_")
-    return f"https://api.onedrive.com/v1.0/shares/u!{encoded}/root/content"
+    # Converte link 1drv.ms para download direto
+    # Troca o domínio e adiciona download=1
+    if "1drv.ms" in share_url or "onedrive.live.com" in share_url:
+        sep = "&" if "?" in share_url else "?"
+        return share_url + sep + "download=1"
+    return share_url
 
 def _baixar_banco() -> Path:
     url  = _onedrive_direct_url(ONEDRIVE_URL)
